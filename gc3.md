@@ -14,14 +14,114 @@ Occupants have a stable identifier, much as [XEP-0421](https://xmpp.org/extensio
 
 ### Joining a channel
 
-#### Client sends iq to bare JID with channel it wants to join
-#### account sends iq to service
-#### service responds with 'true' address of channel that was joined
-#### account announces to client that it has joined a channel.
+#### Client requests form from channel
+
+A client can (optionally, but suggested) request the join configuration form before trying to join the room by sending an iq get
+
+```xml
+<iq
+    from='hag66@shakespeare.lit/pda'
+    id='ia324fih'
+    to='UHJhaXNlIEtldgo@c3service.example.com'
+    type='get'>
+  <join-form xmlns="urn:xmpp:gc3"/>
+</iq>
+```
+
+The server responds with a form with fields, some of which may be mandatory.
+
+```xml
+<iq
+    to='hag66@shakespeare.lit/pda'
+    id='ia324fih'
+    from='UHJhaXNlIEtldgo@c3service.example.com'
+    type='result'>
+  <join-form xmlns="urn:xmpp:gc3">
+    <x xmlns='jabber:x:data' type='form'>
+      <title>Join options</title>
+      <instructions>Fill out this form to configure your join</instructions>
+      <field type='hidden'
+             var='FORM_TYPE'>
+        <value>urn:xmpp:gc3:join-form</value>
+      </field>
+      <field type='text-single'
+             label='Nickname'
+             var='urn:xmpp:gc3:fields:nickname'>
+         <required/>
+      </field>
+  </join>
+</iq>
+```
+
+A field whose var is `urn:xmpp:gc3:fields:nickname` is always the user's nickname in the room, and clients might wish to special-case presentation of this field.
+
+#### Client sends iq to channel with join details
+
+Client sends an iq set, optionally including the form. Not including the form is the same as including the form with no fields. Not including a field is an instruction to use the default value for that field. Not including a mandatory field is an error (TODO: Define error case so client knows that it needs to re-request the form to submit mandatory fields).
+
+```xml
+<iq
+    from='hag66@shakespeare.lit/pda'
+    id='39dhs'
+    to='UHJhaXNlIEtldgo@c3service.example.com'
+    type='set'>
+  <join xmlns="urn:xmpp:gc3">
+    <x xmlns='jabber:x:data' type='form'>
+      <field type='hidden'
+             var='FORM_TYPE'>
+        <value>urn:xmpp:gc3:join-form</value>
+      </field>
+      <field type='text-single'
+             var='urn:xmpp:gc3:fields:nickname'>
+         <value>Haggish</value>
+      </field>
+  </join>
+</iq>
+```
+
+#### Channel responds with result containing join details
+
+```xml
+<iq
+    to='hag66@shakespeare.lit/pda'
+    id='39dhs'
+    from='UHJhaXNlIEtldgo@c3service.example.com'
+    type='result'>
+  <joined xmlns="urn:xmpp:gc3">
+    <subscription-jid>UHJhaXNlIEtldgo@c3service.example.com</subscription-jid>
+  </joined>
+</iq>
+```
+
+The channel responds telling the user what room JID they should expect the presence subscription request from. This allows for room aliases (e.g. `coven@gc3service.example.com` being a friendly alias that a user can join for the channel whose opaque JID is really `UHJhaXNlIEtldgo@c3service.example.com`).
+
+#### Channel sends subscription request
+
+The channel then MUST respond with a subscription request.
+
+```xml
+<presence to='hag66@shakespeare.lit'
+    from='UHJhaXNlIEtldgo@c3service.example.com'
+    type='subscribe'/>
+```
+
+#### Client autoaccepts subscription request
+
+The client then checks the request is from the room JID returned from the iq in the `subscription-jid` element, and if so MUST auto-approve it.
+
+```xml
+<presence from='hag66@shakespeare.lit/pda'
+    to='UHJhaXNlIEtldgo@c3service.example.com'
+    type='subscribed'/>
+```
+
+#### Client adds channel to private 'joined channels' node
+
+The client then adds the channel to the private 'joined channels' node. (TODO: Basically bookmarks2, but for tracking joined GC3 rooms).
 
 ### Creating a channel
 
-Channels are created by a client sending an iq to their bare JID, and their server relaying that to the channel service. The service then creates the channel with an opaque identifier (nodepart), adds the creator as a participant, assigns them the owner hat, returns a join payload to the user's bare JID, user's server returns an empty result, and pushes out the new membership in the normal way.
+Creating a channel follows the same flow as joining, but with a `create-form` and `create` instead of `join-form` and `join`. The subscription flow follows the same.
 
 ### Subscribing to receive data from a channel
 
@@ -141,6 +241,8 @@ As a presence subscription is established during join of a channel, a GC3 client
 ### Inviting to a channel
 
 ### Channel address aliases
+
+### Configuring a user's membership of the channel (changing nick, xep4 form)
 
 ### Main changes from MUC
 
