@@ -10,7 +10,7 @@ Channels are identified with a bare JID where the domain part is the service on 
 
 ### Identifying participants in a channel
 
-Occupants have a stable identifier, much as [XEP-0421](https://xmpp.org/extensions/xep-0421.html). The occupant is identified by the JID of the channel, plus the occupant's identifier as the resource giving a full JID. This is similar to MUC, except that the user identifier is not their nickname. e.g. `UHJhaXNlIEtldgo@gc3service.example.com/VGhpcyBpcyBLZXYK`.
+Occupants have a stable identifier, much as [XEP-0421](https://xmpp.org/extensions/xep-0421.html). The occupant is identified by the JID of the channel, plus the occupant's identifier as the resource giving a full JID. This is similar to MUC, except that the user identifier is not their nickname. e.g. `UHJhaXNlIEtldgo@gc3service.example.com/VGhpcyBpcyBLZXYK` - this is called the "Participant JID".
 
 ### Joining a channel
 
@@ -23,11 +23,112 @@ Occupants have a stable identifier, much as [XEP-0421](https://xmpp.org/extensio
 
 Channels are created by a client sending an iq to their bare JID, and their server relaying that to the channel service. The service then creates the channel with an opaque identifier (nodepart), adds the creator as a participant, assigns them the owner hat, returns a join payload to the user's bare JID, user's server returns an empty result, and pushes out the new membership in the normal way.
 
+### Subscribing to receive data from a channel
+
+A participant entity is not subscribed to messages, presence, or other data for channels they're in by default. Instead the entity selects which data it wants to receive.
+
+#### Subscribing to messages on all channels
+
+A participant entity advertises that they want to receive messages for all channels by advertising the `urn:xmpp:gc3:default-receive:message` feature in their disco+caps of their initial broadcast presence. If a channel receives initial presence from a participant's full JID containing this feature, the participant should be subscribed to messages on the channel until either the channel receives an unavailable at the end of the presence session, or the participant explicitly unsubscribes from messages (see below). A client that always advertises this feature could avoid implementing the explicit subscription flow and will get behaviour very much like MUC.
+
+An entity SHOULD NOT add or remove this value during a presence session, and channels are not expected to reevaluate a participant's presence after their initial presence broadcast for a session.
+
+#### Subscribing to presence on all channels
+
+Presence works as messages, but with an advertised feature of `urn:xmpp:gc3:default-receive:presence`.
+
+#### Subscribing to participant changes on all channels
+
+GC3 splits the MUC concepts of occupancy and presence. To receive updates to the participant list, do the same but with `urn:xmpp:gc3:default-receive:participants`.
+
+#### Explicit subscription
+
+A participant can subscribe to messages, presence or participant changes by sending an iq
+
+```xml
+<iq
+    from='hag66@shakespeare.lit/pda'
+    id='ia324fih'
+    to='UHJhaXNlIEtldgo@c3service.example.com'
+    type='set'>
+  <subscribe xmlns="urn:xmpp:gc3" type="message"/>
+</iq>
+```
+
+where the `type` is `message`, `presence` or `participant` respectively.
+
+#### Explicit unsubscription
+
+Similarly:
+
+```xml
+<iq
+    from='hag66@shakespeare.lit/pda'
+    id='2iardh3'
+    to='UHJhaXNlIEtldgo@c3service.example.com'
+    type='set'>
+  <unsubscribe xmlns="urn:xmpp:gc3" type="message"/>
+</iq>
+```
+
+Note that explicit subscription and unsubscription override the `default-receive`, but a full JID is always unsubscribed when the channel receives an `unavailable` presence.
+
 ### Sending a message to a channel
+
+This happens as it did in MUC.
+
+```xml
+<message
+    from='hag66@shakespeare.lit/pda'
+    id='hysf1v37'
+    to='UHJhaXNlIEtldgo@c3service.example.com'
+    type='groupchat'>
+  <body>Harpier cries: 'tis time, 'tis time.</body>
+</message>
+```
+
+The channel then checks if the participant is allowed to send a message to the channel, and if so it distributes it to those participants allowed to see messages in the channel who are currently subscribed to messages). If the user is not authorised to send a message to the channel, an error is returned.
+
+### Receiving messages from a channel
+
+When the channel distributes a received message it sends it from the participant's Participant JID. As channels are required to implement MAM, it'll always contain a [stanza-id](https://xmpp.org/extensions/xep-0359.html).
+
+```xml
+<message
+    from='UHJhaXNlIEtldgo@c3service.example.com/414ff9c3-c5d4-4d4a-bce9-085b9ab08979'
+    id='hysf1v37'
+    to='crone1@shakespeare.lit/desktop'
+    type='groupchat'>
+  <body>Harpier cries: 'tis time, 'tis time.</body>
+  <stanza-id xmlns='urn:xmpp:sid:0'
+             by='UHJhaXNlIEtldgo@c3service.example.com'
+             id='28482-98726-73623' />
+</message>
+<message
+    from='UHJhaXNlIEtldgo@c3service.example.com/414ff9c3-c5d4-4d4a-bce9-085b9ab08979'
+    id='hysf1v37'
+    to='wiccarocks@shakespeare.lit/laptop'
+    type='groupchat'>
+  <body>Harpier cries: 'tis time, 'tis time.</body>
+  <stanza-id xmlns='urn:xmpp:sid:0'
+             by='UHJhaXNlIEtldgo@c3service.example.com'
+             id='28482-98726-73623' />
+</message>
+<message
+    from='UHJhaXNlIEtldgo@c3service.example.com/414ff9c3-c5d4-4d4a-bce9-085b9ab08979'
+    id='hysf1v37'
+    to='hag66@shakespeare.lit/pda'
+    type='groupchat'>
+  <body>Harpier cries: 'tis time, 'tis time.</body>
+  <stanza-id xmlns='urn:xmpp:sid:0'
+             by='UHJhaXNlIEtldgo@c3service.example.com'
+             id='28482-98726-73623' />
+</message>
+```
 
 ### Sending presence to a channel
 
-### Receiving messages from a channel
+As a presence subscription is established during join of a channel, a GC3 client SHOULD NOT send directed presence to a channel. A user's presence will be distributed by their server as part of the usual presence broadcast.
 
 ### Receiving presence from a channel
 
