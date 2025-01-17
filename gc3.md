@@ -24,7 +24,7 @@ A client can (optionally, but suggested) request the join configuration form bef
     id='ia324fih'
     to='UHJhaXNlIEtldgo@c3service.example.com'
     type='get'>
-  <join-form xmlns="urn:xmpp:gc3"/>
+  <join-form xmlns="urn:xmpp:gc3:0"/>
 </iq>
 ```
 
@@ -36,7 +36,7 @@ The server responds with a form with fields, some of which may be mandatory.
     id='ia324fih'
     from='UHJhaXNlIEtldgo@c3service.example.com'
     type='result'>
-  <join-form xmlns="urn:xmpp:gc3">
+  <join-form xmlns="urn:xmpp:gc3:0">
     <x xmlns='jabber:x:data' type='form'>
       <title>Join options</title>
       <instructions>Fill out this form to configure your join</instructions>
@@ -65,7 +65,7 @@ Client sends an iq set, optionally including the form. Not including the form is
     id='39dhs'
     to='UHJhaXNlIEtldgo@c3service.example.com'
     type='set'>
-  <join xmlns="urn:xmpp:gc3">
+  <join xmlns="urn:xmpp:gc3:0">
     <x xmlns='jabber:x:data' type='form'>
       <field type='hidden'
              var='FORM_TYPE'>
@@ -87,7 +87,7 @@ Client sends an iq set, optionally including the form. Not including the form is
     id='39dhs'
     from='UHJhaXNlIEtldgo@c3service.example.com'
     type='result'>
-  <joined xmlns="urn:xmpp:gc3">
+  <joined xmlns="urn:xmpp:gc3:0">
     <subscription-jid>UHJhaXNlIEtldgo@c3service.example.com</subscription-jid>
   </joined>
 </iq>
@@ -129,17 +129,17 @@ A participant entity is not subscribed to messages, presence, or other data for 
 
 #### Subscribing to messages on all channels
 
-A participant entity advertises that they want to receive messages for all channels by advertising the `urn:xmpp:gc3:default-receive:message` feature in their disco+caps of their initial broadcast presence. If a channel receives initial presence from a participant's full JID containing this feature, the participant should be subscribed to messages on the channel until either the channel receives an unavailable at the end of the presence session, or the participant explicitly unsubscribes from messages (see below). A client that always advertises this feature could avoid implementing the explicit subscription flow and will get behaviour very much like MUC.
+A participant entity advertises that they want to receive messages for all channels by advertising the `urn:xmpp:gc3:0:default-receive:message` feature in their disco+caps of their initial broadcast presence. If a channel receives initial presence from a participant's full JID containing this feature, the participant should be subscribed to messages on the channel until either the channel receives an unavailable at the end of the presence session, or the participant explicitly unsubscribes from messages (see below). A client that always advertises this feature could avoid implementing the explicit subscription flow and will get behaviour very much like MUC.
 
 An entity SHOULD NOT add or remove this value during a presence session, and channels are not expected to reevaluate a participant's presence after their initial presence broadcast for a session.
 
 #### Subscribing to presence on all channels
 
-Presence works as messages, but with an advertised feature of `urn:xmpp:gc3:default-receive:presence`.
+Presence works as messages, but with an advertised feature of `urn:xmpp:gc3:0:default-receive:presence`.
 
 #### Subscribing to participant changes on all channels
 
-GC3 splits the MUC concepts of occupancy and presence. To receive updates to the participant list, do the same but with `urn:xmpp:gc3:default-receive:participants`.
+GC3 splits the MUC concepts of occupancy and presence. To receive updates to the participant list, do the same but with `urn:xmpp:gc3:0:default-receive:participants`.
 
 #### Explicit subscription
 
@@ -151,7 +151,7 @@ A participant can subscribe to messages, presence or participant changes by send
     id='ia324fih'
     to='UHJhaXNlIEtldgo@c3service.example.com'
     type='set'>
-  <subscribe xmlns="urn:xmpp:gc3" type="message"/>
+  <subscribe xmlns="urn:xmpp:gc3:0" type="message"/>
 </iq>
 ```
 
@@ -167,7 +167,7 @@ Similarly:
     id='2iardh3'
     to='UHJhaXNlIEtldgo@c3service.example.com'
     type='set'>
-  <unsubscribe xmlns="urn:xmpp:gc3" type="message"/>
+  <unsubscribe xmlns="urn:xmpp:gc3:0" type="message"/>
 </iq>
 ```
 
